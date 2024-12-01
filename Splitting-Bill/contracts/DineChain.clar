@@ -17,6 +17,7 @@
 (define-constant ERR-DOUBLE-CLAIM (err u112))
 (define-constant ERR-INVALID-RESTAURANT (err u113))
 (define-constant ERR-INVALID-STATUS (err u114))
+(define-constant ERR-RESTAURANT-RATING (err u115))
 
 ;; Constants
 (define-constant MAX-PARTICIPANTS u20)
@@ -137,8 +138,9 @@
 
 (define-private (update-restaurant-rating (restaurant principal) (new-rating uint))
     (let
-        ((current-ratings (unwrap! (get-restaurant-rating restaurant) 
-            {total-ratings: u0, average-rating: u0})))
+        ((current-ratings (default-to 
+            {total-ratings: u0, average-rating: u0}
+            (map-get? RestaurantRatings restaurant))))
         (map-set RestaurantRatings restaurant
             {
                 total-ratings: (+ (get total-ratings current-ratings) u1),
@@ -146,7 +148,9 @@
                                        (get total-ratings current-ratings))
                                     new-rating)
                                  (+ (get total-ratings current-ratings) u1))
-            })
+            }
+        )
+        (ok true)
     )
 )
 
@@ -314,7 +318,7 @@
 (define-public (rate-restaurant (restaurant principal) (rating uint))
     (begin
         (asserts! (and (>= rating u1) (<= rating u5)) ERR-INVALID-AMOUNT)
-        (try! (update-restaurant-rating restaurant rating))
+        (unwrap! (update-restaurant-rating restaurant rating) ERR-RESTAURANT-RATING)
         (ok true)
     )
 )
